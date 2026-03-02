@@ -69,14 +69,14 @@ const Label = memo(({ children, sub }) => (
 ));
 
 const Input = memo(({ value, onChange, placeholder, ...props }) => (
-  <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-    style={inputSx} onFocus={(e) => focusStyle(e, true)} onBlur={(e) => focusStyle(e, false)} {...props} />
+  <input defaultValue={value} onBlur={(e) => { onChange(e.target.value); focusStyle(e, false); }} placeholder={placeholder}
+    style={inputSx} onFocus={(e) => focusStyle(e, true)} onChange={props.onKeyDown ? undefined : undefined} {...props} />
 ));
 
 const TextArea = memo(({ value, onChange, placeholder, rows = 3 }) => (
-  <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
+  <textarea defaultValue={value} onBlur={(e) => { onChange(e.target.value); focusStyle(e, false); }} placeholder={placeholder} rows={rows}
     style={{ ...inputSx, resize: "vertical", fontFamily: "inherit" }}
-    onFocus={(e) => focusStyle(e, true)} onBlur={(e) => focusStyle(e, false)} />
+    onFocus={(e) => focusStyle(e, true)} />
 ));
 
 const Select = memo(({ value, onChange, options }) => (
@@ -92,12 +92,23 @@ const Chip = memo(({ children, onRemove }) => (
   </span>
 ));
 
-const AddRow = memo(({ value, onChange, onAdd, placeholder }) => (
-  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-    <Input value={value} onChange={onChange} placeholder={placeholder} onKeyDown={(e) => e.key === "Enter" && onAdd()} />
-    <button onClick={onAdd} style={{ padding: "10px 18px", background: C.accent, border: "none", borderRadius: 10, color: "#fff", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", fontSize: "0.85rem" }}>+ Adicionar</button>
-  </div>
-));
+const AddRow = memo(({ value, onChange, onAdd, placeholder }) => {
+  const ref = { current: null };
+  const handleAdd = () => {
+    onAdd();
+    if (ref.current) ref.current.value = "";
+  };
+  return (
+    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+      <input defaultValue={value} onChange={(e) => onChange(e.target.value)}
+        ref={(el) => { ref.current = el; }}
+        placeholder={placeholder}
+        onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+        style={inputSx} onFocus={(e) => focusStyle(e, true)} onBlur={(e) => focusStyle(e, false)} />
+      <button onClick={handleAdd} style={{ padding: "10px 18px", background: C.accent, border: "none", borderRadius: 10, color: "#fff", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", fontSize: "0.85rem" }}>+ Adicionar</button>
+    </div>
+  );
+});
 
 const Card = memo(({ title, children }) => (
   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22, marginBottom: 20 }}>
