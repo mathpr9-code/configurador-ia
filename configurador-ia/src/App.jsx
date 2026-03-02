@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 
 const STEPS = [
   { id: "identidade", label: "Identidade", icon: "🤖" },
@@ -36,6 +36,86 @@ const DEFAULT_COMPORTAMENTOS = [
   └──────────────────────────────────────────────────────┘
 */
 const N8N_WEBHOOK_URL = "https://n8n-matheus.riochat.com.br/webhook/prompt";
+
+// ─── COLORS ───
+const C = {
+  bg: "#FFFFFF", card: "#F7F8FC", border: "#E2E5F1",
+  accent: "#4F46E5", accentLt: "#EEF2FF", accentDk: "#4338CA",
+  txt: "#1E1E2E", txtSec: "#64748B",
+  inBg: "#FFF", inBor: "#D1D5E8",
+  chipBg: "#EEF2FF", chipTxt: "#4F46E5",
+  danger: "#EF4444", dangerLt: "#FEF2F2",
+  success: "#10B981", successLt: "#ECFDF5",
+};
+
+const inputSx = {
+  width: "100%", padding: "10px 14px", background: C.inBg,
+  border: `1.5px solid ${C.inBor}`, borderRadius: 10, color: C.txt,
+  fontSize: "0.88rem", outline: "none", boxSizing: "border-box",
+  transition: "border-color .2s, box-shadow .2s",
+};
+
+const focusStyle = (e, on) => {
+  e.target.style.borderColor = on ? C.accent : C.inBor;
+  e.target.style.boxShadow = on ? `0 0 0 3px ${C.accentLt}` : "none";
+};
+
+// ─── REUSABLE COMPONENTS (defined outside to avoid re-creation) ───
+const Label = memo(({ children, sub }) => (
+  <label style={{ display: "block", marginBottom: 6 }}>
+    <span style={{ color: C.txt, fontWeight: 600, fontSize: "0.88rem" }}>{children}</span>
+    {sub && <span style={{ color: C.txtSec, fontSize: "0.78rem", display: "block", marginTop: 2 }}>{sub}</span>}
+  </label>
+));
+
+const Input = memo(({ value, onChange, placeholder, ...props }) => (
+  <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+    style={inputSx} onFocus={(e) => focusStyle(e, true)} onBlur={(e) => focusStyle(e, false)} {...props} />
+));
+
+const TextArea = memo(({ value, onChange, placeholder, rows = 3 }) => (
+  <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
+    style={{ ...inputSx, resize: "vertical", fontFamily: "inherit" }}
+    onFocus={(e) => focusStyle(e, true)} onBlur={(e) => focusStyle(e, false)} />
+));
+
+const Select = memo(({ value, onChange, options }) => (
+  <select value={value} onChange={(e) => onChange(e.target.value)} style={inputSx}>
+    {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+  </select>
+));
+
+const Chip = memo(({ children, onRemove }) => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: C.chipBg, borderRadius: 20, fontSize: "0.82rem", color: C.chipTxt, margin: 3, fontWeight: 500 }}>
+    {children}
+    {onRemove && <button onClick={onRemove} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontWeight: 700, fontSize: "0.95rem", padding: 0, lineHeight: 1 }}>×</button>}
+  </span>
+));
+
+const AddRow = memo(({ value, onChange, onAdd, placeholder }) => (
+  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+    <Input value={value} onChange={onChange} placeholder={placeholder} onKeyDown={(e) => e.key === "Enter" && onAdd()} />
+    <button onClick={onAdd} style={{ padding: "10px 18px", background: C.accent, border: "none", borderRadius: 10, color: "#fff", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", fontSize: "0.85rem" }}>+ Adicionar</button>
+  </div>
+));
+
+const Card = memo(({ title, children }) => (
+  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22, marginBottom: 20 }}>
+    {title && <h3 style={{ color: C.accent, fontSize: "0.95rem", fontWeight: 700, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${C.border}`, marginTop: 0 }}>{title}</h3>}
+    {children}
+  </div>
+));
+
+const FG = ({ children }) => <div style={{ marginBottom: 16 }}>{children}</div>;
+
+const ReviewRow = memo(({ label, value, empty }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
+    <span style={{ color: C.txtSec, fontSize: "0.84rem", fontWeight: 500, minWidth: 160 }}>{label}</span>
+    <span style={{ color: empty ? C.danger : C.txt, fontSize: "0.84rem", textAlign: "right", flex: 1, marginLeft: 16 }}>
+      {empty ? "⚠️ Não preenchido" : value}
+    </span>
+  </div>
+));
 
 export default function PromptGenerator() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -255,77 +335,6 @@ ${infosTransferencia.map((info) => `        - ${info}`).join("\n")}
     setSubmitted(true);
     setCurrentStep(STEPS.length - 1);
   };
-
-  // ─── COLORS ───
-  const C = {
-    bg: "#FFFFFF", card: "#F7F8FC", border: "#E2E5F1",
-    accent: "#4F46E5", accentLt: "#EEF2FF", accentDk: "#4338CA",
-    txt: "#1E1E2E", txtSec: "#64748B",
-    inBg: "#FFF", inBor: "#D1D5E8",
-    chipBg: "#EEF2FF", chipTxt: "#4F46E5",
-    danger: "#EF4444", dangerLt: "#FEF2F2",
-    success: "#10B981", successLt: "#ECFDF5",
-  };
-
-  // ─── MICRO COMPONENTS ───
-  const focusStyle = (e, on) => {
-    e.target.style.borderColor = on ? C.accent : C.inBor;
-    e.target.style.boxShadow = on ? `0 0 0 3px ${C.accentLt}` : "none";
-  };
-  const inputSx = {
-    width: "100%", padding: "10px 14px", background: C.inBg,
-    border: `1.5px solid ${C.inBor}`, borderRadius: 10, color: C.txt,
-    fontSize: "0.88rem", outline: "none", boxSizing: "border-box",
-    transition: "border-color .2s, box-shadow .2s",
-  };
-
-  const Label = ({ children, sub }) => (
-    <label style={{ display: "block", marginBottom: 6 }}>
-      <span style={{ color: C.txt, fontWeight: 600, fontSize: "0.88rem" }}>{children}</span>
-      {sub && <span style={{ color: C.txtSec, fontSize: "0.78rem", display: "block", marginTop: 2 }}>{sub}</span>}
-    </label>
-  );
-  const Input = ({ value, onChange, placeholder, ...props }) => (
-    <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      style={inputSx} onFocus={(e) => focusStyle(e, true)} onBlur={(e) => focusStyle(e, false)} {...props} />
-  );
-  const TextArea = ({ value, onChange, placeholder, rows = 3 }) => (
-    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-      style={{ ...inputSx, resize: "vertical", fontFamily: "inherit" }}
-      onFocus={(e) => focusStyle(e, true)} onBlur={(e) => focusStyle(e, false)} />
-  );
-  const Select = ({ value, onChange, options }) => (
-    <select value={value} onChange={(e) => onChange(e.target.value)} style={inputSx}>
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  );
-  const Chip = ({ children, onRemove }) => (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: C.chipBg, borderRadius: 20, fontSize: "0.82rem", color: C.chipTxt, margin: 3, fontWeight: 500 }}>
-      {children}
-      {onRemove && <button onClick={onRemove} style={{ background: "none", border: "none", color: C.danger, cursor: "pointer", fontWeight: 700, fontSize: "0.95rem", padding: 0, lineHeight: 1 }}>×</button>}
-    </span>
-  );
-  const AddRow = ({ value, onChange, onAdd, placeholder }) => (
-    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-      <Input value={value} onChange={onChange} placeholder={placeholder} onKeyDown={(e) => e.key === "Enter" && onAdd()} />
-      <button onClick={onAdd} style={{ padding: "10px 18px", background: C.accent, border: "none", borderRadius: 10, color: "#fff", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", fontSize: "0.85rem" }}>+ Adicionar</button>
-    </div>
-  );
-  const Card = ({ title, children }) => (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22, marginBottom: 20 }}>
-      {title && <h3 style={{ color: C.accent, fontSize: "0.95rem", fontWeight: 700, marginBottom: 16, paddingBottom: 12, borderBottom: `1px solid ${C.border}`, marginTop: 0 }}>{title}</h3>}
-      {children}
-    </div>
-  );
-  const FG = ({ children }) => <div style={{ marginBottom: 16 }}>{children}</div>;
-  const ReviewRow = ({ label, value, empty }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
-      <span style={{ color: C.txtSec, fontSize: "0.84rem", fontWeight: 500, minWidth: 160 }}>{label}</span>
-      <span style={{ color: empty ? C.danger : C.txt, fontSize: "0.84rem", textAlign: "right", flex: 1, marginLeft: 16 }}>
-        {empty ? "⚠️ Não preenchido" : value}
-      </span>
-    </div>
-  );
 
   // ─── STEP RENDERS ───
   const renderIdentidade = () => (
