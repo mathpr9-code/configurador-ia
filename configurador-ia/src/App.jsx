@@ -35,7 +35,7 @@ const DEFAULT_COMPORTAMENTOS = [
   │  O N8N recebe os dados e envia pro Slack formatado   │
   └──────────────────────────────────────────────────────┘
 */
-const N8N_WEBHOOK_URL = "https://SEU-N8N.app.n8n.cloud/webhook/prompt-gerado";
+const N8N_WEBHOOK_URL = "https://n8n-matheus.riochat.com.br/webhook/prompt";
 
 // ─── COLORS ───
 const C = {
